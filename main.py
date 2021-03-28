@@ -13,7 +13,7 @@ from selenium import webdriver
 
 # excel
 import pandas as pd
-
+from selenium.common.exceptions import NoSuchElementException
 
 urls = {
     1: [1, "여성패션", "https://www.coupang.com/np/categories/186764?listSize=120&brand=&offerCondition=&filterType=rocket%2C&isPriceRange=false&minPrice=&maxPrice=&page=1&channel=user&fromComponent=N&selectedPlpKeepFilter=&sorter=bestAsc&filter=&rating=0"],
@@ -96,8 +96,40 @@ def main():
 
     time.sleep(PAGE_LOADING_TIME)
 
-    # 엑셀 저장 리스트
-    excelList = []
+    # 품절 상품 리스트
+    outStockList = []
+
+    # 히스토리 세팅
+    driver.get('https://google.com')
+    time.sleep(PAGE_LOADING_TIME)
+    driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: function() {return[1, 2, 3, 4, 5];},});")
+    time.sleep(PAGE_LOADING_TIME)
+
+    # 쿠팡 접속
+    driver.get(cpUrl)
+    time.sleep(PAGE_LOADING_TIME)
+
+    # try:
+    #     rocketChk = ''
+    #     rocketChk = driver.find_element_by_id('deliveryFilterOption-rocket')
+    # except NoSuchElementException as e:
+    #     print(rocketChk)
+    #     rocketChk = driver.find_element_by_id('deliveryFilterOption-rocket_wow')
+    #     print(rocketChk)
+    # finally:
+    #     print(rocketChk)
+    #     webdriver.ActionChains(driver).move_to_element(rocketChk).click(rocketChk).perform()
+    #     time.sleep(PAGE_LOADING_TIME)
+
+    outStock = driver.find_elements_by_xpath('//*[@class="out-of-stock"]//ancestor::a')
+    for e in outStock:
+        print(e.get_attribute('href'))
+
+    time.sleep(PAGE_LOADING_TIME)
+    time.sleep(PAGE_LOADING_TIME)
+    time.sleep(PAGE_LOADING_TIME)
+    time.sleep(PAGE_LOADING_TIME)
+    time.sleep(PAGE_LOADING_TIME)
 
     # 폴더
     DIR_NAME = datetime.datetime.now().strftime("%y%m%d_%H%M")
