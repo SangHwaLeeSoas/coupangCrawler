@@ -13,7 +13,11 @@ from selenium import webdriver
 
 # excel
 import pandas as pd
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+
+
+# Properties
+PAGE_LOADING_TIME = 10
 
 urls = {
     1: [1, "여성패션", "https://www.coupang.com/np/categories/186764?listSize=120&brand=&offerCondition=&filterType=rocket%2C&isPriceRange=false&minPrice=&maxPrice=&page=1&channel=user&fromComponent=N&selectedPlpKeepFilter=&sorter=bestAsc&filter=&rating=0"],
@@ -36,10 +40,18 @@ urls = {
 }
 
 
+# 품절 상품 찾기 함수
+def findOutOfStock(driver, outStockList):
+    time.sleep(PAGE_LOADING_TIME)
+    outStock = driver.find_elements_by_xpath('//*[@class="out-of-stock"]//ancestor::a')
+    for e in outStock:
+        outStockList.append(e.get_attribute('href'))
+    return outStockList
+
+
 def main():
 
-    # Properties
-    PAGE_LOADING_TIME = 5
+
 
     print('###############################################################')
     print('프로그램 실행')
@@ -109,21 +121,62 @@ def main():
     driver.get(cpUrl)
     time.sleep(PAGE_LOADING_TIME)
 
-    # try:
-    #     rocketChk = ''
-    #     rocketChk = driver.find_element_by_id('deliveryFilterOption-rocket')
-    # except NoSuchElementException as e:
-    #     print(rocketChk)
-    #     rocketChk = driver.find_element_by_id('deliveryFilterOption-rocket_wow')
-    #     print(rocketChk)
-    # finally:
-    #     print(rocketChk)
-    #     webdriver.ActionChains(driver).move_to_element(rocketChk).click(rocketChk).perform()
-    #     time.sleep(PAGE_LOADING_TIME)
+    curPageNo = 1
+    isNext = ''
 
-    outStock = driver.find_elements_by_xpath('//*[@class="out-of-stock"]//ancestor::a')
-    for e in outStock:
-        print(e.get_attribute('href'))
+    while True:
+        time.sleep(PAGE_LOADING_TIME)
+
+        # 차단시 리로드
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        print('::', soup.find('title'), '::')
+        title = str(soup.find('title'))
+        print('::', title, '::')
+        if title.find('Denied') >= 0:
+            print('쿠팡에서 접속을 거부했습니다. 재접속')
+            driver.refresh()
+            time.sleep(PAGE_LOADING_TIME)
+
+        time.sleep(random.randint(5, 10))
+        print('curPageNo : ', curPageNo)
+        # if isEnd:
+        #     break
+
+        findOutOfStock(driver, outStockList)
+
+        pagination = driver.find_elements_by_xpath('//*[@class="page-warpper"]/a')
+
+        # 다음 번호 선택
+        curPageNo = curPageNo + 1
+        try:
+            xpath = '//*[@class="page-warpper"]/a[@data-page="' + str(curPageNo) + '"]'
+            e = driver.find_element_by_xpath(xpath)
+        # 다음 버튼 || 끝
+        except NoSuchElementException:
+            # 다음 버튼 클릭
+            try:
+                nextBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page"]')
+                print(len(nextBtn))
+                print('다음!')
+                e = nextBtn
+            # 끝
+            except NoSuchElementException:
+                limitBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page-dimmed"]')
+                if len(limitBtn) > 0:
+                    print('끝번호!!!')
+                    break;
+
+        # 스크롤 다운
+        print('스크립트 실행!')
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        # 다읍 페이지 클릭
+        curPageNo = int(e.get_attribute('innerHTML'))
+        print(curPageNo)
+        webdriver.ActionChains(driver).move_to_element(e).click(e).perform()
+        pagination.clear()
+        time.sleep(PAGE_LOADING_TIME)
+
+    print(outStockList)
 
     time.sleep(PAGE_LOADING_TIME)
     time.sleep(PAGE_LOADING_TIME)
