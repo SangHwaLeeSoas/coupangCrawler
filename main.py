@@ -129,9 +129,7 @@ def main():
 
         # 차단시 리로드
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        print('::', soup.find('title'), '::')
         title = str(soup.find('title'))
-        print('::', title, '::')
         if title.find('Denied') >= 0:
             print('쿠팡에서 접속을 거부했습니다. 재접속')
             driver.refresh()
@@ -157,26 +155,25 @@ def main():
             try:
                 nextBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page"]')
                 print(len(nextBtn))
-                print('다음!')
                 e = nextBtn
             # 끝
             except NoSuchElementException:
-                limitBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page-dimmed"]')
-                if len(limitBtn) > 0:
-                    print('끝번호!!!')
-                    break;
+                print('끝번호!!!')
+                break;
+                # limitBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="icon next-page-dimmed"]')
+                # if len(limitBtn) > 0:
+                #     break;
 
         # 스크롤 다운
-        print('스크립트 실행!')
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         # 다읍 페이지 클릭
         curPageNo = int(e.get_attribute('innerHTML'))
-        print(curPageNo)
         webdriver.ActionChains(driver).move_to_element(e).click(e).perform()
         pagination.clear()
         time.sleep(PAGE_LOADING_TIME)
 
-    print(outStockList)
+    for e in outStockList:
+        print(e)
 
     time.sleep(PAGE_LOADING_TIME)
     time.sleep(PAGE_LOADING_TIME)
