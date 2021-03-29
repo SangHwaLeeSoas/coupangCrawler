@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+import subprocess
 import time
 import random
 
@@ -91,9 +92,12 @@ def main():
 
 
     # 크롤링
+    subprocess.Popen(r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\chrometemp"')  # 디버거 크롬 구동
+
     options = webdriver.ChromeOptions()
     options.add_argument("disable-gpu")
     options.add_argument("lang=ko_KR")
+    options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     # options.add_argument('--proxy-server=' + 'localhost:8080')
     # options.add_argument('--proxy-server=socks5://' + '127.0.0.1:9150')
     options.add_argument("disable-infobars")
@@ -115,7 +119,11 @@ def main():
     driver.get('https://google.com')
     time.sleep(PAGE_LOADING_TIME)
     driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: function() {return[1, 2, 3, 4, 5];},});")
+    driver.get('https://www.coupang.com/?src=1042016&spec=10304903&addtag=900&ctag=HOME&lptag=%EC%BF%A0%ED%8C%A1&itime=20210329220815&pageType=HOME&pageValue=HOME&wPcid=16170232950131418422682&wRef=www.google.com&wTime=20210329220815&redirect=landing&gclid=EAIaIQobChMI7K-GmMnV7wIVgsuWCh1CjwV_EAAYASAAEgLKC_D_BwE')
     time.sleep(PAGE_LOADING_TIME)
+    
+    # 얼럿 확인
+    # driver.switch_to.alert.accept()
 
     # 쿠팡 접속
     driver.get(cpUrl)
@@ -124,62 +132,112 @@ def main():
     curPageNo = 1
     isNext = ''
 
-    while True:
+    # 품절상품 수집
+    # while True:
+    #     time.sleep(PAGE_LOADING_TIME)
+    #
+    #     # 차단시 리로드
+    #     soup = BeautifulSoup(driver.page_source, 'html.parser')
+    #     title = str(soup.find('title'))
+    #     if title.find('Denied') >= 0:
+    #         print('쿠팡에서 접속을 거부했습니다. 재접속')
+    #         driver.refresh()
+    #         time.sleep(PAGE_LOADING_TIME)
+    #
+    #     time.sleep(random.randint(5, 10))
+    #     print('curPageNo : ', curPageNo)
+    #     # if isEnd:
+    #     #     break
+    #
+    #     findOutOfStock(driver, outStockList)
+    #
+    #     pagination = driver.find_elements_by_xpath('//*[@class="page-warpper"]/a')
+    #
+    #     # 다음 번호 선택
+    #     curPageNo = curPageNo + 1
+    #     try:
+    #         xpath = '//*[@class="page-warpper"]/a[@data-page="' + str(curPageNo) + '"]'
+    #         e = driver.find_element_by_xpath(xpath)
+    #     # 다음 버튼 || 끝
+    #     except NoSuchElementException:
+    #         # 다음 버튼 클릭
+    #         try:
+    #             nextBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page"]')
+    #             print(len(nextBtn))
+    #             e = nextBtn
+    #         # 끝
+    #         except NoSuchElementException:
+    #             print('끝번호!!!')
+    #             break;
+    #             # limitBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="icon next-page-dimmed"]')
+    #             # if len(limitBtn) > 0:
+    #             #     break;
+    #
+    #     # 스크롤 다운
+    #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    #     # 다읍 페이지 클릭
+    #     curPageNo = int(e.get_attribute('innerHTML'))
+    #     webdriver.ActionChains(driver).move_to_element(e).click(e).perform()
+    #     pagination.clear()
+    #     time.sleep(PAGE_LOADING_TIME)
+
+    # 개발용 테스트 데이터
+    outStockList = [['https://www.coupang.com/vp/products/1271111126?itemId=2275791440&vendorItemId=70272921456&sourceType=CATEGORY&categoryId=194176'],
+                    ['https://www.coupang.com/vp/products/111287760?itemId=335216426&vendorItemId=3822438016&sourceType=CATEGORY&categoryId=194176'],
+                    ['https://www.coupang.com/vp/products/344626827?itemId=1094728390&vendorItemId=5613508016&sourceType=CATEGORY&categoryId=194176']]
+    # 상세 정보 수집
+    for i, e in enumerate(outStockList):
+        driver.get(e[0])
         time.sleep(PAGE_LOADING_TIME)
 
-        # 차단시 리로드
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        title = str(soup.find('title'))
-        if title.find('Denied') >= 0:
-            print('쿠팡에서 접속을 거부했습니다. 재접속')
-            driver.refresh()
+        try:
+            title = driver.find_element_by_xpath('//h2[@class="prod-buy-header__title"]').text
+            price = driver.find_element_by_xpath('//span[@class="total-price"]').text.replace('원', '').strip()
+            coNum = driver.find_element_by_xpath('//ul[@class="prod-description-attribute"]/li[last()]').text.split('쿠팡상품번호:')[1].split('-')[0].strip()
+            reviewLi = driver.find_element_by_xpath('//ul[@class="tab-titles"]//ancestor::span[@class="product-tab-review-count"]')
+            reviewCnt = reviewLi.text.replace('(', '').replace(')', '')
+
+            print('title', title)
+            print('price', price)
+            print('coNum', coNum)
+            print('revieCnt', reviewCnt)
+
+            outStockList[i].append(title)
+            outStockList[i].append(price)
+            outStockList[i].append(coNum)
+            outStockList[i].append(reviewCnt)
+
+            # 리뷰 클릭
+            # driver.execute_script("window.scrollTo(0, 1200);")
+            driver.execute_script("$('html, body').animate({scrollTop : $('.product-tab-review-count').offset().top -200}, 400);")
+            time.sleep(PAGE_LOADING_TIME)
+            webdriver.ActionChains(driver).move_to_element(reviewLi).click(reviewLi).perform()
             time.sleep(PAGE_LOADING_TIME)
 
-        time.sleep(random.randint(5, 10))
-        print('curPageNo : ', curPageNo)
-        # if isEnd:
-        #     break
+            # 최신순 클릭
+            driver.execute_script("$('html, body').animate({scrollTop : $('.js_reviewArticleOrderContainer').offset().top -200}, 400);")
+            time.sleep(PAGE_LOADING_TIME)
+            descBtn = driver.find_element_by_xpath('//div[@class="sdp-review__article__order__sort"]/*[@data-order="DATE_DESC"]')
+            webdriver.ActionChains(driver).move_to_element(descBtn).click(descBtn).perform()
+            time.sleep(PAGE_LOADING_TIME)
 
-        findOutOfStock(driver, outStockList)
+            # 평균 별점
+            driver.execute_script("$('html, body').animate({scrollTop : $('.js_reviewAverageTotalStarRating').offset().top -200}, 400);")
+            time.sleep(PAGE_LOADING_TIME)
+            avgRateDiv = driver.find_element_by_xpath('//div[@class="sdp-review__average__total-star__info-orange js_reviewAverageTotalStarRating"]')
+            avgRate = avgRateDiv.get_attribute('data-rating')
+            print('avgRate', avgRate)
+            outStockList[i].append(avgRate)
 
-        pagination = driver.find_elements_by_xpath('//*[@class="page-warpper"]/a')
+            latestDiv = driver.find_element_by_xpath('//section[@class="js_reviewArticleListContainer"]/article/div/div[@class="sdp-review__article__list__info__product-info"]/div[@class="sdp-review__article__list__info__product-info__reg-date"]')
+            latestDt = latestDiv.text.strip()
+            print('latestDt', latestDt)
+            outStockList[i].append(latestDt)
 
-        # 다음 번호 선택
-        curPageNo = curPageNo + 1
-        try:
-            xpath = '//*[@class="page-warpper"]/a[@data-page="' + str(curPageNo) + '"]'
-            e = driver.find_element_by_xpath(xpath)
-        # 다음 버튼 || 끝
         except NoSuchElementException:
-            # 다음 버튼 클릭
-            try:
-                nextBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="next-page"]')
-                print(len(nextBtn))
-                e = nextBtn
-            # 끝
-            except NoSuchElementException:
-                print('끝번호!!!')
-                break;
-                # limitBtn = driver.find_element_by_xpath('//*[@class="page-warpper"]/a[@class="icon next-page-dimmed"]')
-                # if len(limitBtn) > 0:
-                #     break;
+            print('---없음')
 
-        # 스크롤 다운
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        # 다읍 페이지 클릭
-        curPageNo = int(e.get_attribute('innerHTML'))
-        webdriver.ActionChains(driver).move_to_element(e).click(e).perform()
-        pagination.clear()
-        time.sleep(PAGE_LOADING_TIME)
-
-    for e in outStockList:
-        print(e)
-
-    time.sleep(PAGE_LOADING_TIME)
-    time.sleep(PAGE_LOADING_TIME)
-    time.sleep(PAGE_LOADING_TIME)
-    time.sleep(PAGE_LOADING_TIME)
-    time.sleep(PAGE_LOADING_TIME)
+    print(outStockList)
 
     # 폴더
     DIR_NAME = datetime.datetime.now().strftime("%y%m%d_%H%M")
@@ -190,8 +248,7 @@ def main():
 
     # 데이터 저장
     fileName = DIR_NAME + '.xlsx'
-    df = pd.DataFrame(excelList, columns=['URL', 'DATE', '价格', '起批量', '手机专享', '物流', '快递', '供应等级',
-                                          '经营模式', '货描', '响应', '发货', '回头率', '产品类别', '货号'])
+    df = pd.DataFrame(outStockList, columns=['URL', '상품명', '가격', '상품번호', '총리뷰 갯수', '평균 별점', '최신 리뷰일자', '네이버 최저가', '에누리 최저가', '다나와 최저가'])
     df.to_excel(DIR_PATH + PATH_SEPARATOR + fileName, index=False)
 
     print('==================================')
