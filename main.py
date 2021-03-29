@@ -50,6 +50,15 @@ def findOutOfStock(driver, outStockList):
     return outStockList
 
 
+# Alert 제거 함수
+def isAlert(driver):
+    try:
+        alert = driver.switch_to_alert()
+        alert.accpet()
+        return False
+    except Exception:
+        return True
+
 def main():
 
 
@@ -66,7 +75,7 @@ def main():
     print('###############################################################')
 
     cpUrl = ''
-
+    cpTitle = ''
     while True:
         inputText = input('번호 : ')
         inputText = inputText.strip()
@@ -87,6 +96,7 @@ def main():
         print(urls[inputInt][1], '크롤링을 시작합니다.')
         print('###############################################################')
         cpUrl = urls[inputInt][2]
+        cpTitle = urls[inputInt][1]
         break;
 
 
@@ -121,7 +131,7 @@ def main():
     driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: function() {return[1, 2, 3, 4, 5];},});")
     driver.get('https://www.coupang.com/?src=1042016&spec=10304903&addtag=900&ctag=HOME&lptag=%EC%BF%A0%ED%8C%A1&itime=20210329220815&pageType=HOME&pageValue=HOME&wPcid=16170232950131418422682&wRef=www.google.com&wTime=20210329220815&redirect=landing&gclid=EAIaIQobChMI7K-GmMnV7wIVgsuWCh1CjwV_EAAYASAAEgLKC_D_BwE')
     time.sleep(PAGE_LOADING_TIME)
-    
+
     # 얼럿 확인
     # driver.switch_to.alert.accept()
 
@@ -212,6 +222,9 @@ def main():
             driver.execute_script("$('html, body').animate({scrollTop : $('.product-tab-review-count').offset().top -200}, 400);")
             time.sleep(PAGE_LOADING_TIME)
             webdriver.ActionChains(driver).move_to_element(reviewLi).click(reviewLi).perform()
+            if isAlert(driver):
+                time.sleep(PAGE_LOADING_TIME)
+
             time.sleep(PAGE_LOADING_TIME)
 
             # 최신순 클릭
@@ -219,6 +232,9 @@ def main():
             time.sleep(PAGE_LOADING_TIME)
             descBtn = driver.find_element_by_xpath('//div[@class="sdp-review__article__order__sort"]/*[@data-order="DATE_DESC"]')
             webdriver.ActionChains(driver).move_to_element(descBtn).click(descBtn).perform()
+            if isAlert(driver):
+                time.sleep(PAGE_LOADING_TIME)
+
             time.sleep(PAGE_LOADING_TIME)
 
             # 평균 별점
@@ -242,13 +258,13 @@ def main():
     # 폴더
     DIR_NAME = datetime.datetime.now().strftime("%y%m%d_%H%M")
     PATH_SEPARATOR = '/'
-    DIR_PATH = 'data' + PATH_SEPARATOR + DIR_NAME
+    DIR_PATH = 'data'
 
     # 크롤링
 
     # 데이터 저장
-    fileName = DIR_NAME + '.xlsx'
-    df = pd.DataFrame(outStockList, columns=['URL', '상품명', '가격', '상품번호', '총리뷰 갯수', '평균 별점', '최신 리뷰일자', '네이버 최저가', '에누리 최저가', '다나와 최저가'])
+    fileName = cpTitle.strip() + '_' + DIR_NAME + '.xlsx'
+    df = pd.DataFrame(outStockList, columns=['URL', '상품명', '가격', '상품번호', '총리뷰 갯수', '평균 별점', '최신 리뷰일자']) # , '네이버 최저가', '에누리 최저가', '다나와 최저가'
     df.to_excel(DIR_PATH + PATH_SEPARATOR + fileName, index=False)
 
     print('==================================')
