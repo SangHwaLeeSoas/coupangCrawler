@@ -41,6 +41,11 @@ urls = {
 }
 
 
+# 네이버 최저가 URL 생성 함수
+def makeNaverUrl(product):
+    url = 'https://search.shopping.naver.com/search/all?frm=NVSHATC&origQuery=' + product + '&pagingIndex=1&pagingSize=40&productSet=total&query=' + product + '&sort=price_asc&timestamp=&viewType=list'
+    return url
+
 # 품절 상품 찾기 함수
 def findOutOfStock(driver, outStockList):
     time.sleep(PAGE_LOADING_TIME)
@@ -250,6 +255,13 @@ def main():
             print('latestDt', latestDt)
             outStockList[i].append(latestDt)
 
+            # 네이버 최저가
+            driver.get(makeNaverUrl(title))
+            time.sleep(PAGE_LOADING_TIME)
+            naverPrice = driver.find_element_by_xpath('//ul[@class="list_basis"]//li//div//div[position()=2]/div[position()=2]//span/span[last()]').text
+            print('naverPrice', naverPrice)
+            outStockList[i].append(naverPrice)
+
         except NoSuchElementException:
             print('---없음')
 
@@ -264,7 +276,7 @@ def main():
 
     # 데이터 저장
     fileName = cpTitle.strip() + '_' + DIR_NAME + '.xlsx'
-    df = pd.DataFrame(outStockList, columns=['URL', '상품명', '가격', '상품번호', '총리뷰 갯수', '평균 별점', '최신 리뷰일자']) # , '네이버 최저가', '에누리 최저가', '다나와 최저가'
+    df = pd.DataFrame(outStockList, columns=['URL', '상품명', '가격', '상품번호', '총리뷰 갯수', '평균 별점', '최신 리뷰일자', '네이버 최저가']) # , '네이버 최저가', '에누리 최저가', '다나와 최저가'
     df.to_excel(DIR_PATH + PATH_SEPARATOR + fileName, index=False)
 
     print('==================================')
